@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Volunteer Hours — Admin — Future Physicians</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+</head>
+<body>
+  <div id="page-loader" class="page-loader">
+    <div class="brand-icon" style="width:48px;height:48px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14.5h-2v-4.5H8.5v-2H11V7h2v3h2.5v2H13v4.5z"/></svg>
+    </div>
+    <span class="brand">Future Physicians</span>
+  </div>
+
+  <div class="app-shell" id="app-shell" style="display:none;">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <div class="topbar-title">Volunteer Hours</div>
+            <div class="topbar-subtitle">Review and approve member submissions</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" id="btn-approve-all" style="display:none;">
+            Approve all pending
+          </button>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <!-- Stats -->
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:2rem;">
+          <div class="stat-card">
+            <div class="stat-icon amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-pending">0</div>
+              <div class="stat-label">Pending review</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-approved">0</div>
+              <div class="stat-label">Approved</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-rejected">0</div>
+              <div class="stat-label">Rejected</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-total-hours">0.0</div>
+              <div class="stat-label">Total approved hours</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+          <div class="card-header">
+            <h3>All submissions</h3>
+            <div style="display:flex;gap:0.75rem;">
+              <input type="text" id="search-member" class="form-control" placeholder="Search by member…" style="width:200px;"/>
+              <select id="filter-status" class="form-control" style="width:auto;">
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="">All</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Description</th>
+                  <th>Date performed</th>
+                  <th>Hours</th>
+                  <th>Submitted</th>
+                  <th>Status</th>
+                  <th style="width:160px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="hours-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                  <div class="spinner dark" style="margin:0 auto 1rem;"></div>Loading…
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Reject note modal -->
+  <div class="modal-backdrop hidden" id="reject-modal">
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-header">
+        <h3>Reject submission</h3>
+        <button class="btn-close" onclick="document.getElementById('reject-modal').classList.add('hidden')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:1rem;font-size:0.875rem;color:var(--gray-700);">Optionally provide a reason for rejection. The member will see this note.</p>
+        <div class="form-group">
+          <label class="form-label" for="reject-note">Rejection reason (optional)</label>
+          <textarea id="reject-note" class="form-control" rows="3" placeholder="e.g. Insufficient description, duplicate submission…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="document.getElementById('reject-modal').classList.add('hidden')">Cancel</button>
+        <button class="btn btn-danger" id="confirm-reject-btn">Reject submission</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAdmin, signOut, getAllHours, reviewHours, deleteHoursRecord } from '../js/supabase-client.js';
+    import { renderAdminSidebar } from '../js/sidebar.js';
+    import { setupSidebar, setActiveNav, renderSidebarUser, hideLoader,
+             formatDate, timeAgo, STATUS_BADGES,
+             escHtml, showToast, confirmDialog } from '../js/utils.js';
+
+    let allHours = [];
+    let rejectTargetId = null;
+
+    async function init() {
+      const { session, profile } = await requireAdmin();
+
+      document.getElementById('sidebar-mount').innerHTML = renderAdminSidebar(profile);
+      renderSidebarUser(profile);
+      setActiveNav('admin-hours');
+      setupSidebar();
+      document.getElementById('btn-signout').addEventListener('click', signOut);
+      document.getElementById('menu-toggle').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+      });
+
+      document.getElementById('filter-status').addEventListener('change', applyFilters);
+      document.getElementById('search-member').addEventListener('input', applyFilters);
+
+      document.getElementById('btn-approve-all').addEventListener('click', approveAllPending);
+
+      document.getElementById('confirm-reject-btn').addEventListener('click', async () => {
+        if (!rejectTargetId) return;
+        const note = document.getElementById('reject-note').value.trim();
+        document.getElementById('reject-modal').classList.add('hidden');
+        await doReject(rejectTargetId, note);
+        rejectTargetId = null;
+      });
+
+      document.getElementById('app-shell').style.display = 'flex';
+      hideLoader();
+
+      await loadHours();
+    }
+
+    async function loadHours() {
+      allHours = await getAllHours().catch(() => []);
+      updateStats();
+      applyFilters();
+    }
+
+    function updateStats() {
+      const pending  = allHours.filter(h => h.status === 'pending').length;
+      const approved = allHours.filter(h => h.status === 'approved').length;
+      const rejected = allHours.filter(h => h.status === 'rejected').length;
+      const totalHrs = allHours.filter(h => h.status === 'approved').reduce((a, h) => a + Number(h.hours), 0);
+
+      document.getElementById('stat-pending').textContent    = pending;
+      document.getElementById('stat-approved').textContent   = approved;
+      document.getElementById('stat-rejected').textContent   = rejected;
+      document.getElementById('stat-total-hours').textContent = totalHrs.toFixed(1);
+
+      const approveAllBtn = document.getElementById('btn-approve-all');
+      if (pending > 0) {
+        approveAllBtn.style.display = '';
+        approveAllBtn.textContent = `Approve all pending (${pending})`;
+      } else {
+        approveAllBtn.style.display = 'none';
+      }
+
+      // Update sidebar badge
+      const badge = document.getElementById('pending-badge');
+      if (badge) {
+        badge.style.display = pending > 0 ? '' : 'none';
+        badge.textContent = pending;
+      }
+    }
+
+    function applyFilters() {
+      const status = document.getElementById('filter-status').value;
+      const search = document.getElementById('search-member').value.toLowerCase();
+
+      let rows = allHours;
+      if (status) rows = rows.filter(h => h.status === status);
+      if (search) rows = rows.filter(h =>
+        (h.profiles?.full_name || '').toLowerCase().includes(search) ||
+        (h.profiles?.email || '').toLowerCase().includes(search)
+      );
+
+      renderTable(rows);
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('hours-tbody');
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <h4>No submissions found</h4><p>Try changing your filters.</p>
+        </div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(h => `
+        <tr id="hour-row-${h.id}">
+          <td>
+            <div style="font-weight:600;font-size:0.875rem;">${escHtml(h.profiles?.full_name || 'Unknown')}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">${escHtml(h.profiles?.email || '')}</div>
+          </td>
+          <td style="max-width:260px;">
+            <div style="font-size:0.875rem;">${escHtml(h.description)}</div>
+            ${h.admin_note ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">Note: ${escHtml(h.admin_note)}</div>` : ''}
+          </td>
+          <td style="font-size:0.8rem;">${formatDate(h.date_performed)}</td>
+          <td><strong>${Number(h.hours).toFixed(1)}</strong></td>
+          <td style="font-size:0.75rem;color:var(--text-muted);">${timeAgo(h.created_at)}</td>
+          <td><span class="badge ${STATUS_BADGES[h.status] || 'badge-gray'}">${h.status}</span></td>
+          <td>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+              ${h.status !== 'approved' ? `<button class="btn btn-primary btn-sm" onclick="doApprove('${h.id}')">Approve</button>` : ''}
+              ${h.status !== 'rejected' ? `<button class="btn btn-danger btn-sm" onclick="openRejectModal('${h.id}')">Reject</button>` : ''}
+              <button class="btn btn-ghost btn-sm" onclick="doDelete('${h.id}')" title="Delete" style="color:var(--gray-400);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.doApprove = async function(id) {
+      try {
+        const updated = await reviewHours(id, 'approved');
+        const idx = allHours.findIndex(h => h.id === id);
+        if (idx !== -1) allHours[idx] = { ...allHours[idx], ...updated };
+        updateStats();
+        applyFilters();
+        showToast('Hours approved!', 'success');
+      } catch (err) {
+        showToast(err.message || 'Error approving.', 'error');
+      }
+    };
+
+    window.openRejectModal = function(id) {
+      rejectTargetId = id;
+      document.getElementById('reject-note').value = '';
+      document.getElementById('reject-modal').classList.remove('hidden');
+    };
+
+    async function doReject(id, note) {
+      try {
+        const updated = await reviewHours(id, 'rejected', note);
+        const idx = allHours.findIndex(h => h.id === id);
+        if (idx !== -1) allHours[idx] = { ...allHours[idx], ...updated };
+        updateStats();
+        applyFilters();
+        showToast('Submission rejected.', 'warning');
+      } catch (err) {
+        showToast(err.message || 'Error rejecting.', 'error');
+      }
+    }
+
+    window.doDelete = async function(id) {
+      if (!confirmDialog('Permanently delete this record? This cannot be undone.')) return;
+      try {
+        await deleteHoursRecord(id);
+        allHours = allHours.filter(h => h.id !== id);
+        updateStats();
+        applyFilters();
+        showToast('Record deleted.', 'warning');
+      } catch (err) {
+        showToast(err.message || 'Delete failed.', 'error');
+      }
+    };
+
+    async function approveAllPending() {
+      if (!confirmDialog('Approve all pending submissions?')) return;
+      const pending = allHours.filter(h => h.status === 'pending');
+      let count = 0;
+      for (const h of pending) {
+        try {
+          const updated = await reviewHours(h.id, 'approved');
+          const idx = allHours.findIndex(x => x.id === h.id);
+          if (idx !== -1) allHours[idx] = { ...allHours[idx], ...updated };
+          count++;
+        } catch {}
+      }
+      updateStats();
+      applyFilters();
+      showToast(`${count} submission${count !== 1 ? 's' : ''} approved!`, 'success');
+    }
+
+    init().catch(console.error);
+  </script>
+</body>
+</html>

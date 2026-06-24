@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Announcements — Future Physicians</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+</head>
+<body>
+  <div id="page-loader" class="page-loader">
+    <div class="brand-icon" style="width:48px;height:48px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14.5h-2v-4.5H8.5v-2H11V7h2v3h2.5v2H13v4.5z"/></svg>
+    </div>
+    <span class="brand">Future Physicians</span>
+  </div>
+
+  <div class="app-shell" id="app-shell" style="display:none;">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <div class="topbar-title">Announcements</div>
+            <div class="topbar-subtitle">Create and manage member announcements</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary" id="btn-new">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New announcement
+          </button>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="card">
+          <div class="card-header">
+            <h3>All announcements</h3>
+            <select id="filter-priority" class="form-control" style="width:auto;">
+              <option value="">All priorities</option>
+              <option value="urgent">Urgent</option>
+              <option value="high">High</option>
+              <option value="normal">Normal</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div id="announcements-list" style="padding:0.5rem 0;">
+            <div style="padding:2rem;text-align:center;color:var(--text-muted);">
+              <div class="spinner dark" style="margin:0 auto 1rem;"></div>Loading…
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Announcement form modal -->
+  <div class="modal-backdrop hidden" id="ann-modal">
+    <div class="modal" style="max-width:600px;">
+      <div class="modal-header">
+        <h3 id="modal-title">New announcement</h3>
+        <button class="btn-close" onclick="closeAnnModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="ann-form">
+        <div class="modal-body">
+          <div id="ann-alert" class="alert alert-error hidden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+            <span id="ann-alert-msg"></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ann-title">Title <span>*</span></label>
+            <input type="text" id="ann-title" class="form-control" required placeholder="Announcement title"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ann-body">Body <span>*</span></label>
+            <textarea id="ann-body" class="form-control" rows="6" required placeholder="Write the full announcement text here…"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="ann-priority">Priority <span>*</span></label>
+              <select id="ann-priority" class="form-control" required>
+                <option value="low">Low</option>
+                <option value="normal" selected>Normal</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div class="form-group" style="display:flex;align-items:center;padding-top:1.6rem;">
+              <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;font-weight:500;">
+                <input type="checkbox" id="ann-published" checked style="width:16px;height:16px;cursor:pointer;"/>
+                Publish immediately
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeAnnModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="ann-save-btn">Save announcement</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAdmin, signOut, getAllAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement } from '../js/supabase-client.js';
+    import { renderAdminSidebar } from '../js/sidebar.js';
+    import { setupSidebar, setActiveNav, renderSidebarUser, hideLoader,
+             formatDateTime, timeAgo, PRIORITY_BADGES,
+             escHtml, showToast, setButtonLoading, confirmDialog } from '../js/utils.js';
+
+    let allAnnouncements = [];
+    let editingId = null;
+
+    async function init() {
+      const { session, profile } = await requireAdmin();
+
+      document.getElementById('sidebar-mount').innerHTML = renderAdminSidebar(profile);
+      renderSidebarUser(profile);
+      setActiveNav('admin-announcements');
+      setupSidebar();
+      document.getElementById('btn-signout').addEventListener('click', signOut);
+      document.getElementById('menu-toggle').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+      });
+
+      document.getElementById('btn-new').addEventListener('click', openNewModal);
+      document.getElementById('ann-form').addEventListener('submit', handleSubmit);
+      document.getElementById('filter-priority').addEventListener('change', (e) => {
+        const p = e.target.value;
+        renderList(p ? allAnnouncements.filter(a => a.priority === p) : allAnnouncements);
+      });
+
+      document.getElementById('app-shell').style.display = 'flex';
+      hideLoader();
+
+      await loadAnnouncements();
+    }
+
+    async function loadAnnouncements() {
+      allAnnouncements = await getAllAnnouncements().catch(() => []);
+      renderList(allAnnouncements);
+    }
+
+    function renderList(rows) {
+      const container = document.getElementById('announcements-list');
+      if (!rows.length) {
+        container.innerHTML = `<div class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+          <h4>No announcements</h4><p>Create your first announcement using the button above.</p>
+        </div>`;
+        return;
+      }
+
+      container.innerHTML = rows.map(a => `
+        <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--gray-100);display:flex;align-items:flex-start;gap:1rem;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.35rem;">
+              <span style="font-weight:600;color:var(--navy);font-size:0.95rem;">${escHtml(a.title)}</span>
+              <span class="badge ${PRIORITY_BADGES[a.priority] || 'badge-gray'}">${a.priority}</span>
+              <span class="badge ${a.is_published ? 'badge-green' : 'badge-gray'}">${a.is_published ? 'Published' : 'Draft'}</span>
+            </div>
+            <p style="font-size:0.83rem;color:var(--gray-600);margin-bottom:0.35rem;line-height:1.5;">${escHtml(a.body.slice(0, 180))}${a.body.length > 180 ? '…' : ''}</p>
+            <span style="font-size:0.75rem;color:var(--text-muted);">${formatDateTime(a.created_at)} · ${timeAgo(a.created_at)}</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;flex-shrink:0;">
+            <button class="btn btn-ghost btn-sm" onclick="openEditModal('${a.id}')" title="Edit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="handleDelete('${a.id}')" title="Delete" style="color:var(--red);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openNewModal() {
+      editingId = null;
+      document.getElementById('modal-title').textContent = 'New announcement';
+      document.getElementById('ann-form').reset();
+      document.getElementById('ann-priority').value = 'normal';
+      document.getElementById('ann-published').checked = true;
+      document.getElementById('ann-alert').classList.add('hidden');
+      document.getElementById('ann-modal').classList.remove('hidden');
+    }
+
+    window.openEditModal = function(id) {
+      const a = allAnnouncements.find(x => x.id === id);
+      if (!a) return;
+      editingId = id;
+      document.getElementById('modal-title').textContent = 'Edit announcement';
+      document.getElementById('ann-title').value         = a.title || '';
+      document.getElementById('ann-body').value          = a.body || '';
+      document.getElementById('ann-priority').value      = a.priority || 'normal';
+      document.getElementById('ann-published').checked   = a.is_published;
+      document.getElementById('ann-alert').classList.add('hidden');
+      document.getElementById('ann-modal').classList.remove('hidden');
+    };
+
+    window.closeAnnModal = function() {
+      document.getElementById('ann-modal').classList.add('hidden');
+      editingId = null;
+    };
+
+    window.handleDelete = async function(id) {
+      if (!confirmDialog('Delete this announcement? This cannot be undone.')) return;
+      try {
+        await deleteAnnouncement(id);
+        allAnnouncements = allAnnouncements.filter(a => a.id !== id);
+        renderList(allAnnouncements);
+        showToast('Announcement deleted.', 'warning');
+      } catch (err) {
+        showToast(err.message || 'Delete failed.', 'error');
+      }
+    };
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const btn      = document.getElementById('ann-save-btn');
+      const alertEl  = document.getElementById('ann-alert');
+      const alertMsg = document.getElementById('ann-alert-msg');
+      alertEl.classList.add('hidden');
+
+      const title = document.getElementById('ann-title').value.trim();
+      const body  = document.getElementById('ann-body').value.trim();
+
+      if (!title || !body) {
+        alertMsg.textContent = 'Title and body are required.';
+        alertEl.classList.remove('hidden');
+        return;
+      }
+
+      const payload = {
+        title,
+        body,
+        priority:     document.getElementById('ann-priority').value,
+        is_published: document.getElementById('ann-published').checked
+      };
+
+      setButtonLoading(btn, true);
+      try {
+        if (editingId) {
+          const updated = await updateAnnouncement(editingId, payload);
+          const idx = allAnnouncements.findIndex(a => a.id === editingId);
+          if (idx !== -1) allAnnouncements[idx] = { ...allAnnouncements[idx], ...updated };
+          showToast('Announcement updated!', 'success');
+        } else {
+          const created = await createAnnouncement(payload);
+          allAnnouncements.unshift(created);
+          showToast('Announcement published!', 'success');
+        }
+        closeAnnModal();
+        renderList(allAnnouncements);
+        setButtonLoading(btn, false, 'Save announcement');
+      } catch (err) {
+        alertMsg.textContent = err.message || 'Save failed.';
+        alertEl.classList.remove('hidden');
+        setButtonLoading(btn, false, 'Save announcement');
+      }
+    }
+
+    init().catch(console.error);
+  </script>
+</body>
+</html>

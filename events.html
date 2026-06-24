@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Events — Future Physicians</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+</head>
+<body>
+  <div id="page-loader" class="page-loader">
+    <div class="brand-icon" style="width:48px;height:48px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14.5h-2v-4.5H8.5v-2H11V7h2v3h2.5v2H13v4.5z"/></svg>
+    </div>
+    <span class="brand">Future Physicians</span>
+  </div>
+
+  <div class="app-shell" id="app-shell" style="display:none;">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <div class="topbar-title">Events</div>
+            <div class="topbar-subtitle">Browse and sign up for upcoming events</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="form-control" id="category-filter" style="width:auto;">
+            <option value="">All categories</option>
+            <option value="clinical">Clinical</option>
+            <option value="volunteer">Volunteer</option>
+            <option value="educational">Educational</option>
+            <option value="meeting">Meeting</option>
+            <option value="social">Social</option>
+            <option value="general">General</option>
+          </select>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div id="events-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.5rem;">
+          <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted);">
+            <div class="spinner dark" style="margin:0 auto 1rem;"></div>
+            Loading events…
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Event detail modal -->
+  <div class="modal-backdrop hidden" id="event-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">Event Details</h3>
+        <button class="btn-close" onclick="document.getElementById('event-modal').classList.add('hidden')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="document.getElementById('event-modal').classList.add('hidden')">Close</button>
+        <button class="btn btn-primary" id="modal-checkin-btn" style="display:none;">Check in</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireMember, signOut, getUpcomingEvents, checkInToEvent, getMyAttendance } from '../js/supabase-client.js';
+    import { renderMemberSidebar } from '../js/sidebar.js';
+    import { setupSidebar, setActiveNav, renderSidebarUser, hideLoader,
+             formatDateTime, formatTime, getEventMonth, getEventDay,
+             CATEGORY_BADGES, CATEGORY_LABELS, escHtml, showToast } from '../js/utils.js';
+
+    let allEvents = [];
+    let myAttendance = [];
+    let currentProfile = null;
+
+    async function init() {
+      const { session, profile } = await requireMember();
+      currentProfile = profile;
+
+      document.getElementById('sidebar-mount').innerHTML = renderMemberSidebar(profile);
+      renderSidebarUser(profile);
+      setActiveNav('events');
+      setupSidebar();
+      document.getElementById('btn-signout').addEventListener('click', signOut);
+      document.getElementById('menu-toggle').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+      });
+
+      document.getElementById('app-shell').style.display = 'flex';
+      hideLoader();
+
+      [allEvents, myAttendance] = await Promise.all([
+        getUpcomingEvents(50).catch(() => []),
+        getMyAttendance(session.user.id).catch(() => [])
+      ]);
+
+      renderEvents(allEvents);
+
+      document.getElementById('category-filter').addEventListener('change', (e) => {
+        const cat = e.target.value;
+        renderEvents(cat ? allEvents.filter(ev => ev.category === cat) : allEvents);
+      });
+    }
+
+    function renderEvents(events) {
+      const grid = document.getElementById('events-grid');
+      const attendedIds = new Set(myAttendance.map(a => a.event_id));
+
+      if (!events.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;" class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <h4>No events in this category</h4>
+          <p>Check back later or try a different filter.</p>
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = events.map(ev => {
+        const attended = attendedIds.has(ev.id);
+        return `
+          <div class="event-card">
+            <div class="event-card-header">
+              <div class="event-date-badge">
+                <div class="event-month">${getEventMonth(ev.event_date)}</div>
+                <div class="event-day">${getEventDay(ev.event_date)}</div>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div class="event-title">${escHtml(ev.title)}</div>
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">
+                  ${formatTime(ev.event_date)} · ${escHtml(ev.location || 'TBA')}
+                </div>
+              </div>
+            </div>
+            <div class="event-card-body">
+              <p class="event-desc">${escHtml((ev.description || '').slice(0, 140))}${(ev.description || '').length > 140 ? '…' : ''}</p>
+            </div>
+            <div class="event-card-footer">
+              <div class="event-meta">
+                <span class="badge ${CATEGORY_BADGES[ev.category] || 'badge-gray'}">${CATEGORY_LABELS[ev.category] || ev.category}</span>
+                ${ev.volunteer_hours > 0 ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${ev.volunteer_hours}h</span>` : ''}
+              </div>
+              <div style="display:flex;gap:0.5rem;">
+                ${attended
+                  ? `<span class="badge badge-green">✓ Attended</span>`
+                  : `<button class="btn btn-primary btn-sm" onclick="openEventModal('${ev.id}')">View details</button>`
+                }
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    window.openEventModal = function(eventId) {
+      const ev = allEvents.find(e => e.id === eventId);
+      if (!ev) return;
+
+      document.getElementById('modal-title').textContent = ev.title;
+      document.getElementById('modal-body').innerHTML = `
+        <div style="margin-bottom:1.5rem;">
+          <span class="badge ${CATEGORY_BADGES[ev.category] || 'badge-gray'}" style="margin-bottom:1rem;display:inline-block;">${CATEGORY_LABELS[ev.category] || ev.category}</span>
+          <p style="color:var(--gray-700);line-height:1.7;">${escHtml(ev.description || 'No description provided.')}</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem;background:var(--gray-50);border-radius:var(--radius-md);">
+          <div><div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Date & Time</div>
+          <div style="font-weight:600;color:var(--navy);">${formatDateTime(ev.event_date)}</div></div>
+          <div><div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Location</div>
+          <div style="font-weight:600;color:var(--navy);">${escHtml(ev.location || 'TBA')}</div></div>
+          ${ev.volunteer_hours > 0 ? `<div><div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Volunteer Hours</div>
+          <div style="font-weight:600;color:var(--teal);">${ev.volunteer_hours} hours</div></div>` : ''}
+          ${ev.max_attendees ? `<div><div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Capacity</div>
+          <div style="font-weight:600;color:var(--navy);">${ev.max_attendees} attendees</div></div>` : ''}
+        </div>`;
+
+      const checkinBtn = document.getElementById('modal-checkin-btn');
+      const attendedIds = new Set(myAttendance.map(a => a.event_id));
+      if (!attendedIds.has(ev.id)) {
+        checkinBtn.style.display = '';
+        checkinBtn.textContent = 'Check in to this event';
+        checkinBtn.onclick = async () => {
+          checkinBtn.disabled = true;
+          checkinBtn.innerHTML = `<span class="spinner"></span>`;
+          try {
+            await checkInToEvent(ev.id);
+            myAttendance.push({ event_id: ev.id });
+            showToast('Checked in to ' + ev.title + '!', 'success');
+            document.getElementById('event-modal').classList.add('hidden');
+            renderEvents(document.getElementById('category-filter').value
+              ? allEvents.filter(e => e.category === document.getElementById('category-filter').value)
+              : allEvents);
+          } catch (err) {
+            showToast(err.message || 'Could not check in.', 'error');
+            checkinBtn.disabled = false;
+            checkinBtn.textContent = 'Check in to this event';
+          }
+        };
+      } else {
+        checkinBtn.style.display = 'none';
+      }
+
+      document.getElementById('event-modal').classList.remove('hidden');
+    };
+
+    init().catch(console.error);
+  </script>
+</body>
+</html>

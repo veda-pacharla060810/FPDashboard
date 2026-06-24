@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Profile — Future Physicians</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+</head>
+<body>
+  <div id="page-loader" class="page-loader">
+    <div class="brand-icon" style="width:48px;height:48px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14.5h-2v-4.5H8.5v-2H11V7h2v3h2.5v2H13v4.5z"/></svg>
+    </div>
+    <span class="brand">Future Physicians</span>
+  </div>
+
+  <div class="app-shell" id="app-shell" style="display:none;">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <div class="topbar-title">My Profile</div>
+            <div class="topbar-subtitle">Manage your account details</div>
+          </div>
+        </div>
+      </header>
+
+      <main class="page-content" style="max-width:760px;">
+        <div class="grid-2" style="align-items:start;gap:1.5rem;">
+          <!-- Avatar card -->
+          <div class="card" style="grid-column:1/-1;">
+            <div class="card-body" style="display:flex;align-items:center;gap:1.5rem;">
+              <div id="profile-avatar" style="width:80px;height:80px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:1.75rem;font-weight:700;color:white;flex-shrink:0;">??</div>
+              <div>
+                <h2 id="profile-name" style="margin-bottom:0.25rem;">Loading…</h2>
+                <p id="profile-email" style="font-size:0.875rem;"></p>
+                <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+                  <span id="profile-role-badge" class="badge badge-teal">Member</span>
+                  <span id="profile-hours-badge" class="badge badge-navy">0 hours</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Info form -->
+          <div class="card" style="grid-column:1/-1;">
+            <div class="card-header"><h3>Personal information</h3></div>
+            <div class="card-body">
+              <div id="profile-alert" class="alert hidden" style="margin-bottom:1rem;"></div>
+              <form id="profile-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="full-name">Full name <span>*</span></label>
+                    <input type="text" id="full-name" class="form-control" required/>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    <input type="email" id="email" class="form-control" disabled/>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="major">Major / Field of study</label>
+                    <input type="text" id="major" class="form-control" placeholder="e.g. Biology"/>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="grad-year">Graduation year</label>
+                    <select id="grad-year" class="form-control">
+                      <option value="">Select year</option>
+                      <option>2025</option><option>2026</option><option>2027</option>
+                      <option>2028</option><option>2029</option><option>2030</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="phone">Phone number</label>
+                  <input type="tel" id="phone" class="form-control" placeholder="(555) 000-0000"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="bio">Bio</label>
+                  <textarea id="bio" class="form-control" rows="4" placeholder="Tell us about yourself, your career goals, and why you joined Future Physicians…"></textarea>
+                </div>
+                <div style="display:flex;justify-content:flex-end;">
+                  <button type="submit" class="btn btn-primary" id="save-btn">Save changes</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Change password -->
+          <div class="card" style="grid-column:1/-1;">
+            <div class="card-header"><h3>Change password</h3></div>
+            <div class="card-body">
+              <div id="pw-alert" class="alert hidden" style="margin-bottom:1rem;"></div>
+              <form id="pw-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="new-pw">New password <span>*</span></label>
+                    <input type="password" id="new-pw" class="form-control" placeholder="At least 8 characters"/>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="confirm-pw">Confirm password <span>*</span></label>
+                    <input type="password" id="confirm-pw" class="form-control" placeholder="Repeat new password"/>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;">
+                  <button type="submit" class="btn btn-outline" id="pw-btn">Update password</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase, requireMember, signOut, updateProfile } from '../js/supabase-client.js';
+    import { renderMemberSidebar } from '../js/sidebar.js';
+    import { setupSidebar, setActiveNav, renderSidebarUser, hideLoader,
+             getInitials, showToast, setButtonLoading } from '../js/utils.js';
+
+    async function init() {
+      const { session, profile } = await requireMember();
+
+      // Sidebar (works for both roles since profile page is shared)
+      const sidebarFn = profile.role === 'admin'
+        ? (await import('../js/sidebar.js')).renderAdminSidebar
+        : (await import('../js/sidebar.js')).renderMemberSidebar;
+
+      document.getElementById('sidebar-mount').innerHTML = sidebarFn(profile);
+      renderSidebarUser(profile);
+      setActiveNav('profile');
+      setupSidebar();
+      document.getElementById('btn-signout').addEventListener('click', signOut);
+      document.getElementById('menu-toggle').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+      });
+
+      document.getElementById('app-shell').style.display = 'flex';
+      hideLoader();
+
+      // Populate UI
+      function populateProfile(p) {
+        document.getElementById('profile-avatar').textContent = getInitials(p.full_name || p.email);
+        document.getElementById('profile-name').textContent   = p.full_name || 'No name set';
+        document.getElementById('profile-email').textContent  = p.email;
+        document.getElementById('profile-role-badge').textContent  = p.role === 'admin' ? 'Administrator' : 'Member';
+        document.getElementById('profile-hours-badge').textContent = `${Number(p.total_hours).toFixed(1)} hours`;
+
+        document.getElementById('full-name').value  = p.full_name || '';
+        document.getElementById('email').value      = p.email || '';
+        document.getElementById('major').value      = p.major || '';
+        document.getElementById('phone').value      = p.phone || '';
+        document.getElementById('bio').value        = p.bio || '';
+        if (p.graduation_year) {
+          document.getElementById('grad-year').value = String(p.graduation_year);
+        }
+      }
+
+      populateProfile(profile);
+
+      // Save profile
+      document.getElementById('profile-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('save-btn');
+        const alertEl = document.getElementById('profile-alert');
+        alertEl.classList.add('hidden');
+
+        const fullName = document.getElementById('full-name').value.trim();
+        if (!fullName) {
+          alertEl.className = 'alert alert-error';
+          alertEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg><span>Full name is required.</span>`;
+          alertEl.classList.remove('hidden');
+          return;
+        }
+
+        setButtonLoading(btn, true);
+        try {
+          const updated = await updateProfile(session.user.id, {
+            full_name: fullName,
+            major: document.getElementById('major').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            bio:   document.getElementById('bio').value.trim(),
+            graduation_year: document.getElementById('grad-year').value ? parseInt(document.getElementById('grad-year').value) : null
+          });
+          populateProfile(updated);
+          renderSidebarUser(updated);
+          showToast('Profile saved!', 'success');
+          setButtonLoading(btn, false, 'Save changes');
+        } catch (err) {
+          alertEl.className = 'alert alert-error';
+          alertEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg><span>${err.message}</span>`;
+          alertEl.classList.remove('hidden');
+          setButtonLoading(btn, false, 'Save changes');
+        }
+      });
+
+      // Change password
+      document.getElementById('pw-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newPw  = document.getElementById('new-pw').value;
+        const confPw = document.getElementById('confirm-pw').value;
+        const btn    = document.getElementById('pw-btn');
+        const alertEl = document.getElementById('pw-alert');
+        alertEl.classList.add('hidden');
+
+        if (newPw.length < 8) {
+          alertEl.className = 'alert alert-error';
+          alertEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg><span>Password must be at least 8 characters.</span>`;
+          alertEl.classList.remove('hidden');
+          return;
+        }
+        if (newPw !== confPw) {
+          alertEl.className = 'alert alert-error';
+          alertEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg><span>Passwords do not match.</span>`;
+          alertEl.classList.remove('hidden');
+          return;
+        }
+
+        setButtonLoading(btn, true);
+        try {
+          const { error } = await supabase.auth.updateUser({ password: newPw });
+          if (error) throw error;
+          document.getElementById('pw-form').reset();
+          showToast('Password updated!', 'success');
+          setButtonLoading(btn, false, 'Update password');
+        } catch (err) {
+          alertEl.className = 'alert alert-error';
+          alertEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg><span>${err.message}</span>`;
+          alertEl.classList.remove('hidden');
+          setButtonLoading(btn, false, 'Update password');
+        }
+      });
+    }
+
+    init().catch(console.error);
+  </script>
+</body>
+</html>

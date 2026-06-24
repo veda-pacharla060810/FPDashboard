@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard — Future Physicians</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+</head>
+<body>
+  <div id="page-loader" class="page-loader">
+    <div class="brand-icon" style="width:48px;height:48px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14.5h-2v-4.5H8.5v-2H11V7h2v3h2.5v2H13v4.5z"/></svg>
+    </div>
+    <span class="brand">Future Physicians</span>
+  </div>
+
+  <div class="app-shell" id="app-shell" style="display:none;">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <div class="topbar-title">Admin Dashboard</div>
+            <div class="topbar-subtitle" id="topbar-date"></div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <a href="admin-events.html" class="btn btn-primary btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New event
+          </a>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <!-- Platform stats -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon navy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-members">—</div>
+              <div class="stat-label">Total members</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-events">—</div>
+              <div class="stat-label">Published events</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-pending">—</div>
+              <div class="stat-label">Pending hour reviews</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-hours">—</div>
+              <div class="stat-label">Approved volunteer hours</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions + Recent activity -->
+        <div class="grid-2" style="margin-bottom:1.5rem;">
+          <!-- Quick actions -->
+          <div class="card">
+            <div class="card-header"><h3>Quick actions</h3></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:0.75rem;">
+              <a href="admin-events.html" class="btn btn-outline w-full" style="justify-content:flex-start;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Manage events
+              </a>
+              <a href="admin-hours.html" class="btn btn-outline w-full" style="justify-content:flex-start;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Review volunteer hours
+                <span class="badge badge-amber" id="qa-pending" style="margin-left:auto;">0</span>
+              </a>
+              <a href="admin-announcements.html" class="btn btn-outline w-full" style="justify-content:flex-start;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+                Post announcement
+              </a>
+              <a href="admin-users.html" class="btn btn-outline w-full" style="justify-content:flex-start;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Manage members
+              </a>
+            </div>
+          </div>
+
+          <!-- Upcoming events preview -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Upcoming events</h3>
+              <a href="admin-events.html" class="btn btn-ghost btn-sm">Manage</a>
+            </div>
+            <div id="upcoming-events-list">
+              <div style="padding:2rem;text-align:center;color:var(--text-muted);">
+                <div class="spinner dark" style="margin:0 auto 1rem;"></div>Loading…
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending hours -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Pending volunteer hour reviews</h3>
+            <a href="admin-hours.html" class="btn btn-ghost btn-sm">View all</a>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>Member</th><th>Description</th><th>Date</th><th>Hours</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="pending-hours-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                  <div class="spinner dark" style="margin:0 auto 1rem;"></div>Loading…
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAdmin, signOut, getPlatformStats, getUpcomingEvents, getAllHours, reviewHours } from '../js/supabase-client.js';
+    import { renderAdminSidebar } from '../js/sidebar.js';
+    import { setupSidebar, setActiveNav, renderSidebarUser, hideLoader,
+             formatDate, getEventMonth, getEventDay,
+             CATEGORY_BADGES, CATEGORY_LABELS, escHtml, showToast } from '../js/utils.js';
+
+    async function init() {
+      const { session, profile } = await requireAdmin();
+
+      document.getElementById('sidebar-mount').innerHTML = renderAdminSidebar(profile);
+      renderSidebarUser(profile);
+      setActiveNav('admin-dashboard');
+      setupSidebar();
+      document.getElementById('btn-signout').addEventListener('click', signOut);
+      document.getElementById('menu-toggle').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+      });
+
+      document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+      document.getElementById('app-shell').style.display = 'flex';
+      hideLoader();
+
+      const [stats, events, hours] = await Promise.all([
+        getPlatformStats().catch(() => ({})),
+        getUpcomingEvents(5).catch(() => []),
+        getAllHours().catch(() => [])
+      ]);
+
+      // Stats
+      document.getElementById('stat-members').textContent = stats.totalMembers || 0;
+      document.getElementById('stat-events').textContent  = stats.totalEvents || 0;
+      document.getElementById('stat-pending').textContent = stats.pendingReviews || 0;
+      document.getElementById('stat-hours').textContent   = stats.totalVolunteerHours || '0.0';
+      document.getElementById('qa-pending').textContent   = stats.pendingReviews || 0;
+
+      // Update sidebar badge
+      const badge = document.getElementById('pending-badge');
+      if (badge && stats.pendingReviews > 0) {
+        badge.style.display = '';
+        badge.textContent = stats.pendingReviews;
+      }
+
+      // Upcoming events
+      const evList = document.getElementById('upcoming-events-list');
+      if (!events.length) {
+        evList.innerHTML = `<div class="empty-state"><h4>No upcoming events</h4></div>`;
+      } else {
+        evList.innerHTML = events.map(ev => `
+          <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem 1.5rem;border-bottom:1px solid var(--gray-100);">
+            <div class="event-date-badge" style="min-width:46px;">
+              <div class="event-month">${getEventMonth(ev.event_date)}</div>
+              <div class="event-day">${getEventDay(ev.event_date)}</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;color:var(--navy);font-size:0.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ev.title)}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">${escHtml(ev.location || 'TBA')}</div>
+            </div>
+            <span class="badge ${CATEGORY_BADGES[ev.category] || 'badge-gray'}">${CATEGORY_LABELS[ev.category] || ev.category}</span>
+          </div>
+        `).join('');
+      }
+
+      // Pending hours
+      const pending = hours.filter(h => h.status === 'pending').slice(0, 8);
+      renderPendingTable(pending);
+    }
+
+    function renderPendingTable(rows) {
+      const tbody = document.getElementById('pending-hours-tbody');
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+          <h4>All caught up!</h4><p>No pending submissions to review.</p>
+        </div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(h => `
+        <tr id="hour-row-${h.id}">
+          <td>
+            <div style="font-weight:600;font-size:0.875rem;">${escHtml(h.profiles?.full_name || 'Unknown')}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">${escHtml(h.profiles?.email || '')}</div>
+          </td>
+          <td>${escHtml(h.description)}</td>
+          <td>${formatDate(h.date_performed)}</td>
+          <td><strong>${Number(h.hours).toFixed(1)}</strong></td>
+          <td>
+            <div style="display:flex;gap:0.5rem;">
+              <button class="btn btn-primary btn-sm" onclick="approveHour('${h.id}')">Approve</button>
+              <button class="btn btn-danger btn-sm" onclick="rejectHour('${h.id}')">Reject</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.approveHour = async function(id) {
+      try {
+        await reviewHours(id, 'approved');
+        document.getElementById('hour-row-' + id)?.remove();
+        showToast('Hours approved!', 'success');
+        const pending = parseInt(document.getElementById('stat-pending').textContent) - 1;
+        document.getElementById('stat-pending').textContent = Math.max(0, pending);
+        document.getElementById('qa-pending').textContent   = Math.max(0, pending);
+      } catch (err) {
+        showToast(err.message || 'Error', 'error');
+      }
+    };
+
+    window.rejectHour = async function(id) {
+      const note = prompt('Reason for rejection (optional):') || '';
+      try {
+        await reviewHours(id, 'rejected', note);
+        document.getElementById('hour-row-' + id)?.remove();
+        showToast('Submission rejected.', 'warning');
+        const pending = parseInt(document.getElementById('stat-pending').textContent) - 1;
+        document.getElementById('stat-pending').textContent = Math.max(0, pending);
+        document.getElementById('qa-pending').textContent   = Math.max(0, pending);
+      } catch (err) {
+        showToast(err.message || 'Error', 'error');
+      }
+    };
+
+    init().catch(console.error);
+  </script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Users — Future Physicians</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+</head>
+<body>
+  <div id="page-loader" class="page-loader">
+    <div class="brand-icon" style="width:48px;height:48px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14.5h-2v-4.5H8.5v-2H11V7h2v3h2.5v2H13v4.5z"/></svg>
+    </div>
+    <span class="brand">Future Physicians</span>
+  </div>
+
+  <div class="app-shell" id="app-shell" style="display:none;">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <div class="topbar-title">Members</div>
+            <div class="topbar-subtitle">View and manage all registered users</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <span style="font-size:0.875rem;color:var(--text-muted);" id="member-count">Loading…</span>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <!-- Stats -->
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:2rem;">
+          <div class="stat-card">
+            <div class="stat-icon navy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-total">0</div>
+              <div class="stat-label">Total members</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-admins">0</div>
+              <div class="stat-label">Administrators</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-avg-hours">0.0</div>
+              <div class="stat-label">Avg approved hours/member</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Users table -->
+        <div class="card">
+          <div class="card-header">
+            <h3>All users</h3>
+            <div style="display:flex;gap:0.75rem;">
+              <input type="text" id="search-user" class="form-control" placeholder="Search by name or email…" style="width:240px;"/>
+              <select id="filter-role" class="form-control" style="width:auto;">
+                <option value="">All roles</option>
+                <option value="member">Members</option>
+                <option value="admin">Admins</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Major</th>
+                  <th>Grad year</th>
+                  <th>Hours</th>
+                  <th>Role</th>
+                  <th style="width:140px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                  <div class="spinner dark" style="margin:0 auto 1rem;"></div>Loading…
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- User detail modal (read-only view) -->
+  <div class="modal-backdrop hidden" id="user-modal">
+    <div class="modal" style="max-width:500px;">
+      <div class="modal-header">
+        <h3>Member profile</h3>
+        <button class="btn-close" onclick="document.getElementById('user-modal').classList.add('hidden')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="user-modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="document.getElementById('user-modal').classList.add('hidden')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAdmin, signOut, getAllUsers, updateUserRole, getSession } from '../js/supabase-client.js';
+    import { renderAdminSidebar } from '../js/sidebar.js';
+    import { setupSidebar, setActiveNav, renderSidebarUser, hideLoader,
+             formatDate, getInitials, escHtml, showToast, confirmDialog } from '../js/utils.js';
+
+    let allUsers = [];
+    let currentUserId;
+
+    async function init() {
+      const { session, profile } = await requireAdmin();
+      currentUserId = session.user.id;
+
+      document.getElementById('sidebar-mount').innerHTML = renderAdminSidebar(profile);
+      renderSidebarUser(profile);
+      setActiveNav('admin-users');
+      setupSidebar();
+      document.getElementById('btn-signout').addEventListener('click', signOut);
+      document.getElementById('menu-toggle').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+      });
+
+      document.getElementById('search-user').addEventListener('input', applyFilters);
+      document.getElementById('filter-role').addEventListener('change', applyFilters);
+
+      document.getElementById('app-shell').style.display = 'flex';
+      hideLoader();
+
+      await loadUsers();
+    }
+
+    async function loadUsers() {
+      allUsers = await getAllUsers().catch(() => []);
+
+      const total   = allUsers.length;
+      const admins  = allUsers.filter(u => u.role === 'admin').length;
+      const avgHrs  = total > 0 ? (allUsers.reduce((a, u) => a + Number(u.total_hours || 0), 0) / total) : 0;
+
+      document.getElementById('stat-total').textContent    = total;
+      document.getElementById('stat-admins').textContent   = admins;
+      document.getElementById('stat-avg-hours').textContent = avgHrs.toFixed(1);
+      document.getElementById('member-count').textContent  = `${total} users`;
+
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('search-user').value.toLowerCase();
+      const role   = document.getElementById('filter-role').value;
+
+      let rows = allUsers;
+      if (role)   rows = rows.filter(u => u.role === role);
+      if (search) rows = rows.filter(u =>
+        (u.full_name || '').toLowerCase().includes(search) ||
+        (u.email || '').toLowerCase().includes(search)
+      );
+
+      renderTable(rows);
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('users-tbody');
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+          <h4>No users found</h4><p>Try adjusting your search or filter.</p>
+        </div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(u => `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <div style="width:34px;height:34px;border-radius:50%;background:${u.role === 'admin' ? 'var(--navy)' : 'var(--teal)'};display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:white;flex-shrink:0;">
+                ${escHtml(getInitials(u.full_name || u.email))}
+              </div>
+              <button onclick="openUserModal('${u.id}')" style="background:none;border:none;cursor:pointer;font-weight:600;color:var(--navy);font-size:0.875rem;text-align:left;padding:0;">
+                ${escHtml(u.full_name || 'No name')}
+              </button>
+            </div>
+          </td>
+          <td style="font-size:0.82rem;color:var(--gray-600);">${escHtml(u.email)}</td>
+          <td style="font-size:0.82rem;color:var(--text-muted);">${escHtml(u.major || '—')}</td>
+          <td style="font-size:0.82rem;color:var(--text-muted);">${u.graduation_year || '—'}</td>
+          <td><strong>${Number(u.total_hours || 0).toFixed(1)}</strong></td>
+          <td>
+            <span class="badge ${u.role === 'admin' ? 'badge-navy' : 'badge-teal'}">${u.role}</span>
+          </td>
+          <td>
+            <div style="display:flex;gap:0.5rem;">
+              ${u.id !== currentUserId
+                ? u.role === 'admin'
+                  ? `<button class="btn btn-outline btn-sm" onclick="toggleRole('${u.id}', 'member')">→ Member</button>`
+                  : `<button class="btn btn-navy btn-sm" onclick="toggleRole('${u.id}', 'admin')">→ Admin</button>`
+                : `<span style="font-size:0.78rem;color:var(--text-muted);">You</span>`
+              }
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.toggleRole = async function(userId, newRole) {
+      const u = allUsers.find(x => x.id === userId);
+      if (!u) return;
+      const label = newRole === 'admin' ? 'Make this user an administrator?' : 'Remove admin access and make this user a regular member?';
+      if (!confirmDialog(label)) return;
+      try {
+        const updated = await updateUserRole(userId, newRole);
+        const idx = allUsers.findIndex(x => x.id === userId);
+        if (idx !== -1) allUsers[idx] = { ...allUsers[idx], ...updated };
+
+        // Update stats
+        const admins = allUsers.filter(u => u.role === 'admin').length;
+        document.getElementById('stat-admins').textContent = admins;
+
+        applyFilters();
+        showToast(`${u.full_name || 'User'} is now ${newRole === 'admin' ? 'an administrator' : 'a member'}.`, 'success');
+      } catch (err) {
+        showToast(err.message || 'Failed to update role.', 'error');
+      }
+    };
+
+    window.openUserModal = function(userId) {
+      const u = allUsers.find(x => x.id === userId);
+      if (!u) return;
+      document.getElementById('user-modal-body').innerHTML = `
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+          <div style="width:56px;height:56px;border-radius:50%;background:${u.role === 'admin' ? 'var(--navy)' : 'var(--teal)'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:white;">
+            ${escHtml(getInitials(u.full_name || u.email))}
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:1.1rem;color:var(--navy);">${escHtml(u.full_name || 'No name set')}</div>
+            <div style="font-size:0.875rem;color:var(--text-muted);">${escHtml(u.email)}</div>
+            <span class="badge ${u.role === 'admin' ? 'badge-navy' : 'badge-teal'}" style="margin-top:4px;">${u.role}</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem;background:var(--gray-50);border-radius:var(--radius-md);margin-bottom:1rem;">
+          <div>
+            <div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Major</div>
+            <div style="font-weight:600;color:var(--navy);">${escHtml(u.major || '—')}</div>
+          </div>
+          <div>
+            <div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Graduation year</div>
+            <div style="font-weight:600;color:var(--navy);">${u.graduation_year || '—'}</div>
+          </div>
+          <div>
+            <div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Approved hours</div>
+            <div style="font-weight:600;color:var(--teal);">${Number(u.total_hours || 0).toFixed(1)}</div>
+          </div>
+          <div>
+            <div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Phone</div>
+            <div style="font-weight:600;color:var(--navy);">${escHtml(u.phone || '—')}</div>
+          </div>
+        </div>
+        ${u.bio ? `<div><div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Bio</div>
+        <p style="font-size:0.875rem;color:var(--gray-700);line-height:1.6;">${escHtml(u.bio)}</p></div>` : ''}
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:1rem;">Member since ${formatDate(u.created_at)}</div>
+      `;
+      document.getElementById('user-modal').classList.remove('hidden');
+    };
+
+    init().catch(console.error);
+  </script>
+</body>
+</html>

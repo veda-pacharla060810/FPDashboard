@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Volunteer Hours — Future Physicians</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+</head>
+<body>
+  <div id="page-loader" class="page-loader">
+    <div class="brand-icon" style="width:48px;height:48px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14.5h-2v-4.5H8.5v-2H11V7h2v3h2.5v2H13v4.5z"/></svg>
+    </div>
+    <span class="brand">Future Physicians</span>
+  </div>
+
+  <div class="app-shell" id="app-shell" style="display:none;">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <div class="topbar-title">Volunteer Hours</div>
+            <div class="topbar-subtitle">Track and submit your service hours</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary" id="btn-submit-hours">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Log hours
+          </button>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <!-- Stats -->
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:2rem;">
+          <div class="stat-card">
+            <div class="stat-icon teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-approved">0.0</div>
+              <div class="stat-label">Approved hours</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-pending">0</div>
+              <div class="stat-label">Pending review</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon navy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-total">0.0</div>
+              <div class="stat-label">Total submitted</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hours table -->
+        <div class="card">
+          <div class="card-header">
+            <h3>My submissions</h3>
+            <select class="form-control" id="status-filter" style="width:auto;">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Date performed</th>
+                  <th>Hours</th>
+                  <th>Status</th>
+                  <th>Admin note</th>
+                </tr>
+              </thead>
+              <tbody id="hours-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                  <div class="spinner dark" style="margin:0 auto 1rem;"></div>Loading…
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Submit hours modal -->
+  <div class="modal-backdrop hidden" id="hours-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Log volunteer hours</h3>
+        <button class="btn-close" onclick="document.getElementById('hours-modal').classList.add('hidden')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="hours-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="desc">Description <span>*</span></label>
+            <textarea id="desc" class="form-control" placeholder="Describe your volunteer activity…" required rows="3"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="date-performed">Date performed <span>*</span></label>
+              <input type="date" id="date-performed" class="form-control" required/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hours-count">Hours <span>*</span></label>
+              <input type="number" id="hours-count" class="form-control" min="0.25" max="24" step="0.25" placeholder="e.g. 2.5" required/>
+            </div>
+          </div>
+          <div class="alert alert-error hidden" id="hours-error">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+            <span id="hours-error-msg"></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="document.getElementById('hours-modal').classList.add('hidden')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="hours-submit-btn">Submit hours</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireMember, signOut, getMyHours, submitHours } from '../js/supabase-client.js';
+    import { renderMemberSidebar } from '../js/sidebar.js';
+    import { setupSidebar, setActiveNav, renderSidebarUser, hideLoader,
+             formatDate, STATUS_BADGES, escHtml, showToast, setButtonLoading } from '../js/utils.js';
+
+    let allHours = [];
+    let currentSession;
+
+    async function init() {
+      const { session, profile } = await requireMember();
+      currentSession = session;
+
+      document.getElementById('sidebar-mount').innerHTML = renderMemberSidebar(profile);
+      renderSidebarUser(profile);
+      setActiveNav('volunteer-hours');
+      setupSidebar();
+      document.getElementById('btn-signout').addEventListener('click', signOut);
+      document.getElementById('menu-toggle').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+      });
+
+      // Default date to today
+      document.getElementById('date-performed').value = new Date().toISOString().split('T')[0];
+
+      document.getElementById('btn-submit-hours').addEventListener('click', () => {
+        document.getElementById('hours-modal').classList.remove('hidden');
+      });
+
+      document.getElementById('app-shell').style.display = 'flex';
+      hideLoader();
+
+      await loadHours(session.user.id);
+
+      document.getElementById('status-filter').addEventListener('change', (e) => {
+        const status = e.target.value;
+        renderTable(status ? allHours.filter(h => h.status === status) : allHours);
+      });
+
+      document.getElementById('hours-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const desc    = document.getElementById('desc').value.trim();
+        const date    = document.getElementById('date-performed').value;
+        const hours   = parseFloat(document.getElementById('hours-count').value);
+        const btn     = document.getElementById('hours-submit-btn');
+        const errEl   = document.getElementById('hours-error');
+        const errMsg  = document.getElementById('hours-error-msg');
+
+        errEl.classList.add('hidden');
+
+        if (!desc || !date || isNaN(hours) || hours <= 0) {
+          errMsg.textContent = 'Please fill in all required fields.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+
+        setButtonLoading(btn, true);
+        try {
+          await submitHours({ description: desc, date_performed: date, hours });
+          document.getElementById('hours-modal').classList.add('hidden');
+          document.getElementById('hours-form').reset();
+          document.getElementById('date-performed').value = new Date().toISOString().split('T')[0];
+          showToast('Hours submitted for review!', 'success');
+          await loadHours(currentSession.user.id);
+        } catch (err) {
+          errMsg.textContent = err.message || 'Submission failed.';
+          errEl.classList.remove('hidden');
+          setButtonLoading(btn, false, 'Submit hours');
+        }
+      });
+    }
+
+    async function loadHours(userId) {
+      allHours = await getMyHours(userId).catch(() => []);
+
+      const approved = allHours.filter(h => h.status === 'approved').reduce((a, h) => a + Number(h.hours), 0);
+      const pending  = allHours.filter(h => h.status === 'pending').length;
+      const total    = allHours.reduce((a, h) => a + Number(h.hours), 0);
+
+      document.getElementById('stat-approved').textContent = approved.toFixed(1);
+      document.getElementById('stat-pending').textContent  = pending;
+      document.getElementById('stat-total').textContent    = total.toFixed(1);
+
+      renderTable(allHours);
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('hours-tbody');
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <h4>No submissions</h4><p>Use the "Log hours" button to submit volunteer hours for review.</p>
+        </div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(h => `
+        <tr>
+          <td>${escHtml(h.description)}</td>
+          <td>${formatDate(h.date_performed)}</td>
+          <td><strong>${Number(h.hours).toFixed(1)}</strong></td>
+          <td><span class="badge ${STATUS_BADGES[h.status] || 'badge-gray'}">${h.status}</span></td>
+          <td style="color:var(--text-muted);font-size:0.8rem;">${escHtml(h.admin_note || '—')}</td>
+        </tr>
+      `).join('');
+    }
+
+    init().catch(console.error);
+  </script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Announcements — Future Physicians</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+</head>
+<body>
+  <div id="page-loader" class="page-loader">
+    <div class="brand-icon" style="width:48px;height:48px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14.5h-2v-4.5H8.5v-2H11V7h2v3h2.5v2H13v4.5z"/></svg>
+    </div>
+    <span class="brand">Future Physicians</span>
+  </div>
+
+  <div class="app-shell" id="app-shell" style="display:none;">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <div class="topbar-title">Announcements</div>
+            <div class="topbar-subtitle">Important updates from your officers</div>
+          </div>
+        </div>
+      </header>
+
+      <main class="page-content" style="max-width:800px;">
+        <div id="announcements-container">
+          <div style="text-align:center;padding:3rem;color:var(--text-muted);">
+            <div class="spinner dark" style="margin:0 auto 1rem;"></div>Loading announcements…
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireMember, signOut, getAnnouncements } from '../js/supabase-client.js';
+    import { renderMemberSidebar } from '../js/sidebar.js';
+    import { setupSidebar, setActiveNav, renderSidebarUser, hideLoader,
+             formatDateTime, PRIORITY_BADGES, escHtml, timeAgo } from '../js/utils.js';
+
+    async function init() {
+      const { session, profile } = await requireMember();
+
+      document.getElementById('sidebar-mount').innerHTML = renderMemberSidebar(profile);
+      renderSidebarUser(profile);
+      setActiveNav('announcements');
+      setupSidebar();
+      document.getElementById('btn-signout').addEventListener('click', signOut);
+      document.getElementById('menu-toggle').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+      });
+
+      document.getElementById('app-shell').style.display = 'flex';
+      hideLoader();
+
+      const announcements = await getAnnouncements(50).catch(() => []);
+      const container = document.getElementById('announcements-container');
+
+      if (!announcements.length) {
+        container.innerHTML = `<div class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+          <h4>No announcements</h4>
+          <p>Nothing to show yet. Check back later.</p>
+        </div>`;
+        return;
+      }
+
+      container.innerHTML = announcements.map(a => `
+        <div class="card mb-4">
+          <div class="card-header" style="gap:1rem;">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.25rem;">
+                <h3 style="margin:0;font-size:1.05rem;">${escHtml(a.title)}</h3>
+                <span class="badge ${PRIORITY_BADGES[a.priority] || 'badge-gray'}">${a.priority}</span>
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-muted);">${formatDateTime(a.created_at)} · ${timeAgo(a.created_at)}</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <p style="color:var(--gray-700);line-height:1.75;white-space:pre-wrap;">${escHtml(a.body)}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    init().catch(console.error);
+  </script>
+</body>
+</html>

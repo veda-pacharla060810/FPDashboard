@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Events — Future Physicians</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+</head>
+<body>
+  <div id="page-loader" class="page-loader">
+    <div class="brand-icon" style="width:48px;height:48px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14.5h-2v-4.5H8.5v-2H11V7h2v3h2.5v2H13v4.5z"/></svg>
+    </div>
+    <span class="brand">Future Physicians</span>
+  </div>
+
+  <div class="app-shell" id="app-shell" style="display:none;">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <div class="topbar-title">Events</div>
+            <div class="topbar-subtitle">Create and manage all events</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary" id="btn-new-event">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New event
+          </button>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="card">
+          <div class="card-header">
+            <h3>All events</h3>
+            <select id="filter-cat" class="form-control" style="width:auto;">
+              <option value="">All categories</option>
+              <option value="clinical">Clinical</option>
+              <option value="volunteer">Volunteer</option>
+              <option value="educational">Educational</option>
+              <option value="meeting">Meeting</option>
+              <option value="social">Social</option>
+              <option value="general">General</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>Title</th><th>Date</th><th>Category</th><th>Location</th><th>Hours</th><th>Status</th><th style="width:120px;">Actions</th></tr>
+              </thead>
+              <tbody id="events-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                  <div class="spinner dark" style="margin:0 auto 1rem;"></div>Loading…
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Event form modal -->
+  <div class="modal-backdrop hidden" id="event-modal">
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-header">
+        <h3 id="modal-title">New event</h3>
+        <button class="btn-close" onclick="closeEventModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="event-form">
+        <div class="modal-body">
+          <div id="event-form-alert" class="alert alert-error hidden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+            <span id="event-form-alert-msg"></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ev-title">Title <span>*</span></label>
+            <input type="text" id="ev-title" class="form-control" required placeholder="Event title"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ev-desc">Description</label>
+            <textarea id="ev-desc" class="form-control" rows="4" placeholder="Describe the event…"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="ev-start">Start date & time <span>*</span></label>
+              <input type="datetime-local" id="ev-start" class="form-control" required/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ev-end">End date & time</label>
+              <input type="datetime-local" id="ev-end" class="form-control"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ev-location">Location</label>
+            <input type="text" id="ev-location" class="form-control" placeholder="Building, room, or address"/>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="ev-category">Category <span>*</span></label>
+              <select id="ev-category" class="form-control" required>
+                <option value="">Select category</option>
+                <option value="clinical">Clinical</option>
+                <option value="volunteer">Volunteer</option>
+                <option value="educational">Educational</option>
+                <option value="meeting">Meeting</option>
+                <option value="social">Social</option>
+                <option value="general">General</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ev-hours">Volunteer hours</label>
+              <input type="number" id="ev-hours" class="form-control" min="0" max="24" step="0.5" placeholder="0" value="0"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="ev-capacity">Max attendees (optional)</label>
+              <input type="number" id="ev-capacity" class="form-control" min="1" placeholder="Unlimited"/>
+            </div>
+            <div class="form-group" style="display:flex;align-items:center;padding-top:1.6rem;">
+              <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;font-weight:500;">
+                <input type="checkbox" id="ev-published" checked style="width:16px;height:16px;cursor:pointer;"/>
+                Publish immediately
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeEventModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="event-save-btn">Save event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAdmin, signOut, getAllEvents, createEvent, updateEvent, deleteEvent } from '../js/supabase-client.js';
+    import { renderAdminSidebar } from '../js/sidebar.js';
+    import { setupSidebar, setActiveNav, renderSidebarUser, hideLoader,
+             formatDateTime, formatDateForInput, CATEGORY_BADGES, CATEGORY_LABELS,
+             escHtml, showToast, setButtonLoading, confirmDialog } from '../js/utils.js';
+
+    let allEvents = [];
+    let editingId = null;
+
+    async function init() {
+      const { session, profile } = await requireAdmin();
+
+      document.getElementById('sidebar-mount').innerHTML = renderAdminSidebar(profile);
+      renderSidebarUser(profile);
+      setActiveNav('admin-events');
+      setupSidebar();
+      document.getElementById('btn-signout').addEventListener('click', signOut);
+      document.getElementById('menu-toggle').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+      });
+
+      document.getElementById('btn-new-event').addEventListener('click', openNewModal);
+      document.getElementById('event-form').addEventListener('submit', handleSubmit);
+      document.getElementById('filter-cat').addEventListener('change', (e) => {
+        const cat = e.target.value;
+        renderTable(cat ? allEvents.filter(ev => ev.category === cat) : allEvents);
+      });
+
+      document.getElementById('app-shell').style.display = 'flex';
+      hideLoader();
+
+      await loadEvents();
+    }
+
+    async function loadEvents() {
+      allEvents = await getAllEvents().catch(() => []);
+      renderTable(allEvents);
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('events-tbody');
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <h4>No events</h4><p>Create your first event using the button above.</p>
+        </div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(ev => `
+        <tr>
+          <td><strong>${escHtml(ev.title)}</strong></td>
+          <td style="font-size:0.8rem;">${formatDateTime(ev.event_date)}</td>
+          <td><span class="badge ${CATEGORY_BADGES[ev.category] || 'badge-gray'}">${CATEGORY_LABELS[ev.category] || ev.category}</span></td>
+          <td style="font-size:0.8rem;color:var(--text-muted);">${escHtml(ev.location || '—')}</td>
+          <td>${ev.volunteer_hours > 0 ? ev.volunteer_hours + 'h' : '—'}</td>
+          <td><span class="badge ${ev.is_published ? 'badge-green' : 'badge-gray'}">${ev.is_published ? 'Published' : 'Draft'}</span></td>
+          <td>
+            <div style="display:flex;gap:0.5rem;">
+              <button class="btn btn-ghost btn-sm" onclick="openEditModal('${ev.id}')" title="Edit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="handleDelete('${ev.id}')" title="Delete" style="color:var(--red);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openNewModal() {
+      editingId = null;
+      document.getElementById('modal-title').textContent = 'New event';
+      document.getElementById('event-form').reset();
+      document.getElementById('ev-published').checked = true;
+      document.getElementById('ev-hours').value = '0';
+      document.getElementById('event-form-alert').classList.add('hidden');
+      document.getElementById('event-modal').classList.remove('hidden');
+    }
+
+    window.openEditModal = function(id) {
+      const ev = allEvents.find(e => e.id === id);
+      if (!ev) return;
+      editingId = id;
+      document.getElementById('modal-title').textContent = 'Edit event';
+      document.getElementById('ev-title').value      = ev.title || '';
+      document.getElementById('ev-desc').value       = ev.description || '';
+      document.getElementById('ev-start').value      = formatDateForInput(ev.event_date);
+      document.getElementById('ev-end').value        = ev.end_date ? formatDateForInput(ev.end_date) : '';
+      document.getElementById('ev-location').value   = ev.location || '';
+      document.getElementById('ev-category').value   = ev.category || '';
+      document.getElementById('ev-hours').value      = ev.volunteer_hours || 0;
+      document.getElementById('ev-capacity').value   = ev.max_attendees || '';
+      document.getElementById('ev-published').checked = ev.is_published;
+      document.getElementById('event-form-alert').classList.add('hidden');
+      document.getElementById('event-modal').classList.remove('hidden');
+    };
+
+    window.closeEventModal = function() {
+      document.getElementById('event-modal').classList.add('hidden');
+      editingId = null;
+    };
+
+    window.handleDelete = async function(id) {
+      if (!confirmDialog('Delete this event? This cannot be undone.')) return;
+      try {
+        await deleteEvent(id);
+        allEvents = allEvents.filter(e => e.id !== id);
+        renderTable(allEvents);
+        showToast('Event deleted.', 'warning');
+      } catch (err) {
+        showToast(err.message || 'Delete failed.', 'error');
+      }
+    };
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('event-save-btn');
+      const alertEl  = document.getElementById('event-form-alert');
+      const alertMsg = document.getElementById('event-form-alert-msg');
+      alertEl.classList.add('hidden');
+
+      const title    = document.getElementById('ev-title').value.trim();
+      const start    = document.getElementById('ev-start').value;
+      const category = document.getElementById('ev-category').value;
+
+      if (!title || !start || !category) {
+        alertMsg.textContent = 'Please fill in title, start date, and category.';
+        alertEl.classList.remove('hidden');
+        return;
+      }
+
+      const payload = {
+        title,
+        description:     document.getElementById('ev-desc').value.trim(),
+        event_date:      new Date(start).toISOString(),
+        end_date:        document.getElementById('ev-end').value ? new Date(document.getElementById('ev-end').value).toISOString() : null,
+        location:        document.getElementById('ev-location').value.trim(),
+        category,
+        volunteer_hours: parseFloat(document.getElementById('ev-hours').value) || 0,
+        max_attendees:   parseInt(document.getElementById('ev-capacity').value) || null,
+        is_published:    document.getElementById('ev-published').checked
+      };
+
+      setButtonLoading(btn, true);
+      try {
+        if (editingId) {
+          const updated = await updateEvent(editingId, payload);
+          const idx = allEvents.findIndex(e => e.id === editingId);
+          if (idx !== -1) allEvents[idx] = { ...allEvents[idx], ...updated };
+          showToast('Event updated!', 'success');
+        } else {
+          const created = await createEvent(payload);
+          allEvents.unshift(created);
+          showToast('Event created!', 'success');
+        }
+        closeEventModal();
+        renderTable(allEvents);
+        setButtonLoading(btn, false, 'Save event');
+      } catch (err) {
+        alertMsg.textContent = err.message || 'Save failed.';
+        alertEl.classList.remove('hidden');
+        setButtonLoading(btn, false, 'Save event');
+      }
+    }
+
+    init().catch(console.error);
+  </script>
+</body>
+</html>

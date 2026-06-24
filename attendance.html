@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Attendance History — Future Physicians</title>
+  <link rel="stylesheet" href="../css/global.css"/>
+</head>
+<body>
+  <div id="page-loader" class="page-loader">
+    <div class="brand-icon" style="width:48px;height:48px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14.5h-2v-4.5H8.5v-2H11V7h2v3h2.5v2H13v4.5z"/></svg>
+    </div>
+    <span class="brand">Future Physicians</span>
+  </div>
+
+  <div class="app-shell" id="app-shell" style="display:none;">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <div class="topbar-title">Attendance History</div>
+            <div class="topbar-subtitle">Events you've attended</div>
+          </div>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:2rem;">
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-total">0</div>
+              <div class="stat-label">Total events attended</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-hours">0.0</div>
+              <div class="stat-label">Hours from attended events</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon navy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-clinical">0</div>
+              <div class="stat-label">Clinical events</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Event history</h3>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>Event</th><th>Date</th><th>Category</th><th>Hours</th><th>Checked in</th></tr>
+              </thead>
+              <tbody id="attendance-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                  <div class="spinner dark" style="margin:0 auto 1rem;"></div>Loading…
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireMember, signOut, getMyAttendance } from '../js/supabase-client.js';
+    import { renderMemberSidebar } from '../js/sidebar.js';
+    import { setupSidebar, setActiveNav, renderSidebarUser, hideLoader,
+             formatDate, formatDateTime, CATEGORY_BADGES, CATEGORY_LABELS, escHtml } from '../js/utils.js';
+
+    async function init() {
+      const { session, profile } = await requireMember();
+
+      document.getElementById('sidebar-mount').innerHTML = renderMemberSidebar(profile);
+      renderSidebarUser(profile);
+      setActiveNav('attendance');
+      setupSidebar();
+      document.getElementById('btn-signout').addEventListener('click', signOut);
+      document.getElementById('menu-toggle').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+      });
+
+      document.getElementById('app-shell').style.display = 'flex';
+      hideLoader();
+
+      const attendance = await getMyAttendance(session.user.id).catch(() => []);
+
+      // Stats
+      const totalHours = attendance.reduce((a, r) => a + Number(r.events?.volunteer_hours || 0), 0);
+      const clinical   = attendance.filter(r => r.events?.category === 'clinical').length;
+      document.getElementById('stat-total').textContent   = attendance.length;
+      document.getElementById('stat-hours').textContent   = totalHours.toFixed(1);
+      document.getElementById('stat-clinical').textContent = clinical;
+
+      // Table
+      const tbody = document.getElementById('attendance-tbody');
+      if (!attendance.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+          <h4>No events attended yet</h4>
+          <p>Check in to events on the Events page to see your history here.</p>
+        </div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = attendance.map(a => `
+        <tr>
+          <td><strong>${escHtml(a.events?.title || 'Unknown event')}</strong></td>
+          <td>${formatDate(a.events?.event_date)}</td>
+          <td><span class="badge ${CATEGORY_BADGES[a.events?.category] || 'badge-gray'}">${CATEGORY_LABELS[a.events?.category] || '—'}</span></td>
+          <td>${Number(a.events?.volunteer_hours || 0).toFixed(1)}</td>
+          <td style="font-size:0.8rem;color:var(--text-muted);">${formatDateTime(a.checked_in_at)}</td>
+        </tr>
+      `).join('');
+    }
+
+    init().catch(console.error);
+  </script>
+</body>
+</html>
